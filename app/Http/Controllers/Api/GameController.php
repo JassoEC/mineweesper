@@ -7,16 +7,21 @@ use App\Http\Requests\NewGameRequest;
 use App\Services\GameService;
 use Illuminate\Http\Request;
 use App\Http\Resources\Games\GameResource;
+use App\Traits\ApiResponser;
 
 class GameController extends Controller
 {
+    use ApiResponser;
+
     public function __construct(private GameService $games)
     {
     }
 
     function getLatestGame()
     {
-        return $this->games->getLatestGame(auth()->id());
+        return new GameResource(
+            $this->games->getLatestGame(auth()->id())
+        );
     }
 
     function createGame(NewGameRequest $request)
@@ -28,6 +33,20 @@ class GameController extends Controller
                 $request->mines,
                 auth()->id()
             )
+        );
+    }
+
+    function getAllGames()
+    {
+        return GameResource::collection(
+            $this->games->getAllGames()
+        );
+    }
+
+    function getUserStatistics()
+    {
+        return $this->successResponse(
+            $this->games->getStatistics()
         );
     }
 }

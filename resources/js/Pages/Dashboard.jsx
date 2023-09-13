@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import Button from '@mui/material/Button';
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid, List, ListSubheader, Typography } from '@mui/material';
 import { NewGameModal } from '@/Components/Games/NewGameModal';
+import { GameListItem } from '@/Components/Games/GameListItem';
+import { Board } from '@/Components/Games/Board';
 
 export default function Dashboard({ auth }) {
     const [gameState, setGameState] = useState({
-        currentGame: null,
+        currentGame: {},
+        allGames: [],
         showNewGameModal: false,
         newGame: {
             rows: 0,
@@ -18,14 +21,28 @@ export default function Dashboard({ auth }) {
     });
 
     useEffect(() => {
-        window.axios.get('api/games/current')
+        window.axios.get('api/games')
             .then(response => {
                 setGameState((prevState) => ({
                     ...prevState,
-                    currentGame: response.data,
+                    allGames: response.data.data,
+                }));
+            })
+
+        window.axios.get('api/games/current')
+            .then(response => {
+                console.log(response.data.data);
+                setGameState((prevState) => ({
+                    ...prevState,
+                    currentGame: response.data.data,
                 }));
             }
             )
+
+        window.axios.get('api/user/statistics')
+            .then(response => {
+                console.log(response.data.data);
+            })
     }, [])
 
     const handleShowNewGameModal = () => {
@@ -43,7 +60,15 @@ export default function Dashboard({ auth }) {
             }));
 
             const response = await window.axios.post('api/games', gameState.newGame)
-            console.log(response.data);
+            const game = response.data.data;
+            setGameState((prevState) => ({
+                ...prevState,
+                allGames: [...prevState.allGames, game],
+                currentGame: game,
+                showNewGameModal: false,
+                newGame: {},
+            }));
+
         } catch (error) {
             setGameState((prevState) => ({
                 ...prevState,
@@ -61,6 +86,13 @@ export default function Dashboard({ auth }) {
                 ...prevState.newGame,
                 [name]: value,
             },
+        }));
+    }
+
+    const setCurrentGame = (game) => {
+        setGameState((prevState) => ({
+            ...prevState,
+            currentGame: game,
         }));
     }
 
@@ -84,7 +116,15 @@ export default function Dashboard({ auth }) {
                                 New Game
                             </Button>
                         </Box>
-                        <Box padding={2}>
+                        <Box padding={2} sx={{ maxHeight: 400 }}>
+                            <List sx={{ backgroundColor: 'white' }}>
+                                <ListSubheader component="div" id="nested-list-subheader">
+                                    All Games
+                                </ListSubheader>
+                                {gameState.allGames.map(game => (
+                                    <GameListItem key={game.id} game={game} setCurrentGame={setCurrentGame} />
+                                ))}
+                            </List>
                         </Box>
                     </Grid>
                     <Grid item xs={9}>
@@ -96,6 +136,9 @@ export default function Dashboard({ auth }) {
                             >
                                 No game in progress
                             </Typography>
+                        )}
+                        {gameState.currentGame && (
+                            <Board game={gameState.currentGame} />
                         )}
                     </Grid>
                 </Grid>
