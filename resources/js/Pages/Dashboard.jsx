@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { NewGameModal } from '@/Components/Games/NewGameModal';
 import { GameListItem } from '@/Components/Games/GameListItem';
-import { Board } from '@/Components/Games/Board';
+import { Board } from '@/Components/Games/Board/Board';
 import { UserStatistics } from '@/Components/Games/UserStatistics';
 import AddIcon from '@mui/icons-material/Add';
 import Divider from '@mui/material/Divider';
@@ -103,6 +103,13 @@ export default function Dashboard({ auth }) {
         }));
     }
 
+    const handlePause = () => {
+        setGameState((prevState) => ({
+            ...prevState,
+            currentGame: null,
+        }));
+    }
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -160,7 +167,7 @@ export default function Dashboard({ auth }) {
                             <UserStatistics statistics={gameState.statistics} />
                         )}
                         {gameState.currentGame && (
-                            <Board game={gameState.currentGame} />
+                            <Board game={gameState.currentGame} handlePause={handlePause} />
                         )}
                     </Grid>
                 </Grid>

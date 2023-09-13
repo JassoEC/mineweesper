@@ -28,7 +28,7 @@ export function GameListItem({ game, setCurrentGame, selected }) {
                 <ListItemIcon>
                     <GameStatusIcon status={game.status} />
                 </ListItemIcon>
-                <ListItemText primary={game.created_at} />
+                <ListItemText primary={game.createdAt} />
             </ListItemButton>
         </ListItem>
     );

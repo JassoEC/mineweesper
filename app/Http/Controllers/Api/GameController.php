@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\NewGameRequest;
 use App\Services\GameService;
 use Illuminate\Http\Request;
-use App\Http\Resources\Games\GameResource;
+use App\Http\Resources\Games\GameListItemResource;
 use App\Traits\ApiResponser;
 
 class GameController extends Controller
@@ -19,14 +19,14 @@ class GameController extends Controller
 
     function getLatestGame()
     {
-        return new GameResource(
+        return new GameListItemResource(
             $this->games->getLatestGame(auth()->id())
         );
     }
 
     function createGame(NewGameRequest $request)
     {
-        return new GameResource(
+        return new GameListItemResource(
             $this->games->createGame(
                 $request->rows,
                 $request->columns,
@@ -38,7 +38,7 @@ class GameController extends Controller
 
     function getAllGames()
     {
-        return GameResource::collection(
+        return GameListItemResource::collection(
             $this->games->getAllGames()
         );
     }
