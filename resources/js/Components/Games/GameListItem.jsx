@@ -15,7 +15,7 @@ const GameStatusIcon = ({ status }) => {
     return <PlayArrowIcon color='warning' />;
 }
 
-export function GameListItem({ game, setCurrentGame }) {
+export function GameListItem({ game, setCurrentGame, selected }) {
 
     const handleClick = () => {
         setCurrentGame(game);
@@ -23,8 +23,8 @@ export function GameListItem({ game, setCurrentGame }) {
 
 
     return (
-        <ListItem>
-            <ListItemButton onClick={handleClick}>
+        <ListItem >
+            <ListItemButton onClick={handleClick} selected={selected}>
                 <ListItemIcon>
                     <GameStatusIcon status={game.status} />
                 </ListItemIcon>

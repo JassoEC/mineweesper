@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import Button from '@mui/material/Button';
-import { Box, Grid, List, ListSubheader, Typography } from '@mui/material';
+import {
+    Box,
+    Grid,
+    List,
+    ListSubheader,
+    Typography,
+    ListItem,
+    ListItemButton,
+    ListItemText,
+    ListItemIcon
+} from '@mui/material';
 import { NewGameModal } from '@/Components/Games/NewGameModal';
 import { GameListItem } from '@/Components/Games/GameListItem';
 import { Board } from '@/Components/Games/Board';
+import { UserStatistics } from '@/Components/Games/UserStatistics';
+import AddIcon from '@mui/icons-material/Add';
+import Divider from '@mui/material/Divider';
 
 export default function Dashboard({ auth }) {
     const [gameState, setGameState] = useState({
-        currentGame: {},
+        currentGame: null,
         allGames: [],
         showNewGameModal: false,
         newGame: {
@@ -18,6 +30,7 @@ export default function Dashboard({ auth }) {
             mines: 0,
         },
         errors: {},
+        statistics: {},
     });
 
     useEffect(() => {
@@ -29,20 +42,14 @@ export default function Dashboard({ auth }) {
                 }));
             })
 
-        window.axios.get('api/games/current')
+        window.axios.get('api/user/statistics')
             .then(response => {
-                console.log(response.data.data);
                 setGameState((prevState) => ({
                     ...prevState,
-                    currentGame: response.data.data,
+                    statistics: response.data.data,
                 }));
             }
             )
-
-        window.axios.get('api/user/statistics')
-            .then(response => {
-                console.log(response.data.data);
-            })
     }, [])
 
     const handleShowNewGameModal = () => {
@@ -103,39 +110,54 @@ export default function Dashboard({ auth }) {
         >
             <Head title="Dashboard" />
 
-            <Box minHeight={'600px'}>
+            <Box minHeight={700}>
                 <Grid container spacing={2}>
                     <Grid item xs={3}>
-                        <Box padding={2}>
-                            <Button
-                                color="primary"
-                                variant="contained"
-                                fullWidth
-                                onClick={handleShowNewGameModal}
-                            >
-                                New Game
-                            </Button>
-                        </Box>
-                        <Box padding={2} sx={{ maxHeight: 400 }}>
-                            <List sx={{ backgroundColor: 'white' }}>
-                                <ListSubheader component="div" id="nested-list-subheader">
-                                    All Games
-                                </ListSubheader>
-                                {gameState.allGames.map(game => (
-                                    <GameListItem key={game.id} game={game} setCurrentGame={setCurrentGame} />
-                                ))}
-                            </List>
+                        <Box
+                            sx={{
+                                maxHeight: 400,
+                                bgcolor: "background.paper",
+                                marginY: 4,
+                                overflow: 'hidden',
+                                borderTopRightRadius: 8,
+                                borderBottomRightRadius: 8,
+                            }}>
+                            <nav aria-label="secondary mailbox folders">
+                                <List>
+                                    <ListSubheader component="div" id="nested-list-subheader">
+                                        Options
+                                    </ListSubheader>
+                                    <ListItem>
+                                        <ListItemButton onClick={handleShowNewGameModal}>
+                                            <ListItemIcon>
+                                                <AddIcon />
+                                            </ListItemIcon>
+                                            <ListItemText primary="New Game" />
+                                        </ListItemButton>
+                                    </ListItem>
+                                    <Divider />
+                                </List>
+                            </nav>
+                            <nav aria-label="secondary mailbox folders">
+                                <List>
+                                    <ListSubheader component="div" id="nested-list-subheader">
+                                        Old Games
+                                    </ListSubheader>
+                                    {gameState.allGames.map(game => (
+                                        <GameListItem
+                                            key={game.id}
+                                            game={game}
+                                            setCurrentGame={setCurrentGame}
+                                            selected={gameState.currentGame?.id === game.id}
+                                        />
+                                    ))}
+                                </List>
+                            </nav>
                         </Box>
                     </Grid>
                     <Grid item xs={9}>
                         {!gameState.currentGame && (
-                            <Typography
-                                variant="h6"
-                                color="textSecondary"
-                                align="center"
-                            >
-                                No game in progress
-                            </Typography>
+                            <UserStatistics statistics={gameState.statistics} />
                         )}
                         {gameState.currentGame && (
                             <Board game={gameState.currentGame} />

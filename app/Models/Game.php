@@ -22,6 +22,10 @@ class Game extends Model
         'board'
     ];
 
+    protected $casts = [
+        'board' => 'object'
+    ];
+
 
     function createdAt(): Attribute
     {

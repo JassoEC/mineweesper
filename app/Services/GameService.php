@@ -43,8 +43,9 @@ class GameService
     {
         return [
             'won' => 1,
-            'lost' => 3,
-            'played' => 2,
+            'lost' => 2,
+            'played' => 3,
+            'playing' => 1,
         ];
     }
 
