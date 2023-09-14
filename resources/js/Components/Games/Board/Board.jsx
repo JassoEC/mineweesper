@@ -111,6 +111,7 @@ export function Board({ game, handlePause }) {
                                 flagged={board.flagged}
                                 revealed={board.revealed}
                                 mines={board.mines}
+                                gameStatus={board.status}
                             />
                         ))}
                     </Grid>

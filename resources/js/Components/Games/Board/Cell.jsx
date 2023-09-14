@@ -1,11 +1,11 @@
 import { Grid } from "@mui/material";
 
-export function Cell({ cell, handleReveal, handleFlagged, sideSize = 40 }) {
+export function Cell({ cell, handleReveal, handleFlagged, gameStatus, sideSize = 40 }) {
 
     const getBackgroundColor = () => {
-        // if (cell.hasMine) {
-        //     return 'red';
-        // }
+        if (cell.hasMine && gameStatus === 'lost') {
+            return 'red';
+        }
 
         if (cell.isRevealed) {
             return 'white';
@@ -15,12 +15,13 @@ export function Cell({ cell, handleReveal, handleFlagged, sideSize = 40 }) {
     }
 
     const getCellContent = () => {
-        if (cell.isRevealed && cell.hasMine) {
+
+        if (cell.isRevealed && cell.hasMine || gameStatus === 'lost' && cell.hasMine) {
             return '💣';
         }
 
         if (cell.isRevealed && !cell.hasMine) {
-            return '';
+            return cell.minesAround === 0 ? '' : cell.minesAround;
         }
 
         if (cell.isFlagged) {
@@ -43,6 +44,7 @@ export function Cell({ cell, handleReveal, handleFlagged, sideSize = 40 }) {
     return (
         <Grid
             item
+            container
             border={'1px solid black'}
             height={sideSize}
             width={sideSize}
@@ -50,6 +52,7 @@ export function Cell({ cell, handleReveal, handleFlagged, sideSize = 40 }) {
             onContextMenu={onFlagged}
             textAlign={'center'}
             justifyContent={'center'}
+            alignContent={'center'}
             sx={{
                 backgroundColor: getBackgroundColor(),
                 borderRadius: 1,
@@ -63,9 +66,9 @@ export function Cell({ cell, handleReveal, handleFlagged, sideSize = 40 }) {
 
             }}
         >
-            <>
+            <span>
                 {getCellContent()}
-            </>
+            </span>
         </Grid>
     )
 }

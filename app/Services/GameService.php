@@ -23,7 +23,7 @@ class GameService
     {
         $newGame = new Game();
 
-        $board = $this->fillCells($rows, $columns, $mines);
+        $board = $this->fillBoard($rows, $columns, $mines);
 
         $newGame->fill([
             'rows' => $rows,
@@ -36,7 +36,7 @@ class GameService
 
         $newGame->save();
 
-        return $newGame;
+        return $newGame->refresh();
     }
 
     function getStatistics(): mixed
@@ -50,51 +50,67 @@ class GameService
     }
 
 
-    private function fillCells(int $rows, int $columns, int $numberOdMines): array
+    private function fillBoard(int $rows, int $columns, int $numberOdMines): array
     {
-        $cellWithMines = [];
-
-        for ($i = 0; $i < $numberOdMines; $i++) {
-            $cellWithMines[] = [
-                'row' => rand(0, $rows - 1),
-                'column' => rand(0, $columns - 1),
-            ];
-        }
-
-        $cells = [];
-        $mines = [];
+        $board = [
+            'cells' => [],
+            'mines' => [],
+            'numberOfFlags' => 0,
+            'numberOfMines' => $numberOdMines,
+            'numberOfRevealedCells' => 0,
+            'numberOfCells' => $rows * $columns,
+        ];
 
         for ($r = 0; $r < $rows; $r++) {
             for ($c = 0; $c < $columns; $c++) {
-                if (Arr::first($cellWithMines, fn ($cell) => $cell['row'] === $r && $cell['column'] === $c)) {
-                    $cells[$r][$c] = [
-                        'hasMine' => true,
-                        'isFlagged' => false,
-                        'isRevealed' => false,
-                        'row' => $r,
-                        'column' => $c,
-                    ];
-                    $mines[] = [
-                        'row' => $r,
-                        'column' => $c,
-                        'isFlagged' => false,
-                        'isRevealed' => false,
-                    ];
-
-                    continue;
-                }
-
-                $cells[$r][$c] = [
+                $board['cells'][$r][$c] = [
                     'hasMine' => false,
                     'isFlagged' => false,
                     'isRevealed' => false,
                     'row' => $r,
                     'column' => $c,
+                    'minesAround' => 0
                 ];
             }
         }
 
-        return ['cells' => $cells, 'mines' => $mines];
+        return $board;
+    }
+
+    function fillMines(Game $game, int $rowSelected, int $columnSelected): Game
+    {
+        $rows = $game->rows;
+        $columns = $game->columns;
+        $numberOdMines = $game->mines;
+        $board = json_decode($game->board, true);
+
+        $cellWithMines = count($board['mines']);
+
+        do {
+            $mine = [
+                'row' => rand(0, $rows - 1),
+                'column' => rand(0, $columns - 1),
+                'isFlagged' => false,
+                'isRevealed' => false,
+            ];
+
+            if ($mine['row'] !== $rowSelected && $mine['column'] !== $columnSelected) {
+                $board['cells'][$mine['row']][$mine['column']]['hasMine'] = true;
+                $board['mines'][] = $mine;
+                $cellWithMines++;
+            }
+        } while ($cellWithMines < $numberOdMines);
+
+        for ($r = 0; $r < $rows; $r++) {
+            for ($c = 0; $c < $columns; $c++) {
+                $board['cells'][$r][$c]['minesAround'] = $this->getNumberOfMinesAround($board, $r, $c);
+            }
+        }
+
+        $game->board = json_encode($board);
+        $game->save();
+
+        return $game->refresh();
     }
 
     function addFlagToCell($gameId, $row, $column): Game
@@ -106,6 +122,10 @@ class GameService
         }
 
         $board = json_decode($game->board, true);
+
+        if (count($board['mines']) === 0) {
+            return $game;
+        }
 
         $flaggedCell = $board['cells'][$row][$column];
 
@@ -133,11 +153,17 @@ class GameService
         }
 
         $board = json_decode($game->board, true);
+        $numberOfRevealedCells = $board['numberOfRevealedCells'];
+
+        if (count($board['mines']) === 0) {
+            $game = $this->fillMines($game, $row, $column);
+            $board = json_decode($game->board, true);
+        }
 
         $revealedCell = $board['cells'][$row][$column];
 
         if ($revealedCell['isRevealed'] || $revealedCell['isFlagged']) {
-            return $game->refresh();
+            return $game;
         }
 
         if ($revealedCell['hasMine']) {
@@ -150,10 +176,31 @@ class GameService
         }
 
         $board['cells'][$row][$column]['isRevealed'] = true;
+        $board['numberOfRevealedCells'] = ++$numberOfRevealedCells;
 
         $game->board = json_encode($board);
         $game->save();
 
         return $game->refresh();
+    }
+
+    private function getNumberOfMinesAround(array $board, int $row, int $column): int
+    {
+        $minesAround = 0;
+
+        $rows = count($board['cells']);
+        $columns = count($board['cells'][0]);
+
+        for ($r = $row - 1; $r <= $row + 1; $r++) {
+            for ($c = $column - 1; $c <= $column + 1; $c++) {
+                if ($r >= 0 && $r < $rows && $c >= 0 && $c < $columns) {
+                    if ($board['cells'][$r][$c]['hasMine']) {
+                        $minesAround++;
+                    }
+                }
+            }
+        }
+
+        return $minesAround;
     }
 }
