@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NewGameRequest;
+use App\Http\Requests\UpdateCellRequest;
 use App\Services\GameService;
 use Illuminate\Http\Request;
 use App\Http\Resources\Games\GameListItemResource;
+use App\Http\Resources\Games\GameResource;
 use App\Traits\ApiResponser;
 
 class GameController extends Controller
@@ -17,10 +19,10 @@ class GameController extends Controller
     {
     }
 
-    function getLatestGame()
+    function getGameById(Request $request, $id)
     {
-        return new GameListItemResource(
-            $this->games->getLatestGame(auth()->id())
+        return new GameResource(
+            $this->games->getGameById($id)
         );
     }
 
@@ -47,6 +49,28 @@ class GameController extends Controller
     {
         return $this->successResponse(
             $this->games->getStatistics()
+        );
+    }
+
+    function setFlaggedCell(UpdateCellRequest $request)
+    {
+        return  new GameResource(
+            $this->games->addFlagToCell(
+                $request->gameId,
+                $request->row,
+                $request->column
+            )
+        );
+    }
+
+    function setRevealedCell(UpdateCellRequest $request)
+    {
+        return  new GameResource(
+            $this->games->addRevealedCell(
+                $request->gameId,
+                $request->row,
+                $request->column
+            )
         );
     }
 }

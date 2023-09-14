@@ -21,8 +21,15 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 });
 
 
-Route::middleware(['auth:sanctum'])->prefix('games')->group(function () {
-    Route::get('/', [GameController::class, 'getAllGames'])->name('games.all');
-    Route::post('/', [GameController::class, 'createGame'])->name('games.create');
-    Route::get('/current', [GameController::class, 'getLatestGame'])->name('games.current');
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('games')->group(function () {
+        Route::get('/', [GameController::class, 'getAllGames'])->name('games.all');
+        Route::post('/', [GameController::class, 'createGame'])->name('games.create');
+        Route::get('/{id}', [GameController::class, 'getGameById'])->name('games.byId');
+    });
+
+    Route::prefix('cells')->group(function () {
+        Route::post('/flagged', [GameController::class, 'setFlaggedCell'])->name('cells.flagged');
+        Route::post('/revealed', [GameController::class, 'setRevealedCell'])->name('cells.revealed');
+    });
 });

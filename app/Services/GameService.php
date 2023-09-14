@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\GameStatus;
 use App\Models\Game;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 
 class GameService
 {
@@ -13,28 +14,27 @@ class GameService
         return Game::where('user_id', auth()->id())->get();
     }
 
-    function getLatestGame(int $userId): ?Game
+    function getGameById(int $gameId): ?Game
     {
-        return Game::where('status', GameStatus::PLAYING->value)
-            ->where('user_id', $userId)
-            ->latest()
-            ->first();
+        return Game::find($gameId);
     }
 
     function createGame(int $rows, int $columns, int $mines, int $userId)
     {
-        $newGame = Game::create([
+        $newGame = new Game();
+
+        $board = $this->fillCells($rows, $columns, $mines);
+
+        $newGame->fill([
             'rows' => $rows,
             'columns' => $columns,
             'mines' => $mines,
             'status' => GameStatus::PLAYING->value,
             'user_id' => $userId,
-            'board' => json_encode([
-                'mines' => $this->fillMines($rows, $columns, $mines),
-                'revealed' => [],
-                'flagged' => []
-            ]),
+            'board' => json_encode($board),
         ]);
+
+        $newGame->save();
 
         return $newGame;
     }
@@ -50,27 +50,110 @@ class GameService
     }
 
 
-    private function fillMines(int $rows, int $columns, int $mines)
+    private function fillCells(int $rows, int $columns, int $numberOdMines): array
     {
-        $mines = [
-            ['row' => 0, 'column' => 0],
-            ['row' => 5, 'column' => 5],
-            ['row' => 5, 'column' => 4],
-        ];
-        // $mines = [];
-        // for ($i = 0; $i < $mines; $i++) {
-        //     $mine = [
-        //         'row' => rand(0, $rows - 1),
-        //         'column' => rand(0, $columns - 1)
-        //     ];
+        $cellWithMines = [];
 
-        //     if (!in_array($mine, $mines)) {
-        //         $mines[] = $mine;
-        //     } else {
-        //         $i--;
-        //     }
-        // }
+        for ($i = 0; $i < $numberOdMines; $i++) {
+            $cellWithMines[] = [
+                'row' => rand(0, $rows - 1),
+                'column' => rand(0, $columns - 1),
+            ];
+        }
 
-        return $mines;
+        $cells = [];
+        $mines = [];
+
+        for ($r = 0; $r < $rows; $r++) {
+            for ($c = 0; $c < $columns; $c++) {
+                if (Arr::first($cellWithMines, fn ($cell) => $cell['row'] === $r && $cell['column'] === $c)) {
+                    $cells[$r][$c] = [
+                        'hasMine' => true,
+                        'isFlagged' => false,
+                        'isRevealed' => false,
+                        'row' => $r,
+                        'column' => $c,
+                    ];
+                    $mines[] = [
+                        'row' => $r,
+                        'column' => $c,
+                        'isFlagged' => false,
+                        'isRevealed' => false,
+                    ];
+
+                    continue;
+                }
+
+                $cells[$r][$c] = [
+                    'hasMine' => false,
+                    'isFlagged' => false,
+                    'isRevealed' => false,
+                    'row' => $r,
+                    'column' => $c,
+                ];
+            }
+        }
+
+        return ['cells' => $cells, 'mines' => $mines];
+    }
+
+    function addFlagToCell($gameId, $row, $column): Game
+    {
+        $game = Game::find($gameId);
+
+        if ($game->status !== GameStatus::PLAYING->value) {
+            return $game;
+        }
+
+        $board = json_decode($game->board, true);
+
+        $flaggedCell = $board['cells'][$row][$column];
+
+        if ($flaggedCell['isFlagged']) {
+            $board['cells'][$row][$column]['isFlagged'] = false;
+            $game->board = json_encode($board);
+            $game->save();
+            return $game->refresh();
+        }
+
+        $board['cells'][$row][$column]['isFlagged'] = true;
+
+        $game->board = json_encode($board);
+        $game->save();
+
+        return $game->refresh();
+    }
+
+    function addRevealedCell($gameId, $row, $column): Game
+    {
+        $game = Game::find($gameId);
+
+        if ($game->status !== GameStatus::PLAYING->value) {
+            return $game;
+        }
+
+        $board = json_decode($game->board, true);
+
+        $revealedCell = $board['cells'][$row][$column];
+
+        if ($revealedCell['isRevealed'] || $revealedCell['isFlagged']) {
+            return $game->refresh();
+        }
+
+        if ($revealedCell['hasMine']) {
+            $board['cells'][$row][$column]['isRevealed'] = true;
+            $game->board = json_encode($board);
+            $game->status = GameStatus::LOST->value;
+            $game->save();
+
+            return $game->refresh();
+        }
+
+        $board['cells'][$row][$column]['isRevealed'] = true;
+
+        $game->board = json_encode($board);
+        $game->save();
+
+        return $game->refresh();
     }
 }
